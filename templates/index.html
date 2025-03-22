@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroArch ROM & BIOS Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+</head>
+<body>
+    <h1>RetroArch ROM & BIOS Downloader</h1>
+    <p>Browse and download ROMs or BIOS files for RetroArch. Progress updates in real-time.</p>
+    
+    <div id="system-list">
+        <h2>Available Systems</h2>
+        <ul>
+            {% for id, system in systems.items() %}
+                <li>
+                    {{ system.name }}
+                    <button onclick="startDownload({{ id }})">Download</button>
+                    <div id="progress-{{ id }}" class="progress-bar">
+                        <div class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <span id="status-{{ id }}">Not Started</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div id="message"></div>
+
+    <script>
+        const socket = io.connect("http://" + window.location.host);
+
+        socket.on("connect", function() {
+            console.log("Connected to WebSocket");
+        });
+
+        socket.on("update", function(data) {
+            document.getElementById("message").innerText = data.message;
+        });
+
+        socket.on("progress", function(data) {
+            const progressBar = document.getElementById(`progress-${data.system_id}`).querySelector(".progress-fill");
+            const statusText = document.getElementById(`status-${data.system_id}`);
+            progressBar.style.width = `${data.progress}%`;
+            statusText.innerText = data.status;
+        });
+
+        function startDownload(systemId) {
+            fetch(`/download/${systemId}`).then(response => {
+                if (response.ok) {
+                    console.log("Download started for system " + systemId);
+                } else {
+                    alert("Failed to start download");
+                }
+            });
+        }
+    </script>
+</body>
+</html>
